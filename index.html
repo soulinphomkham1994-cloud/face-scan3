@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ລະບົບສະແກນໃບໜ້າເຂົ້າວຽກ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Lao:wght@100..900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="config.js"></script>
+<style>
+  :root {
+    --red:        #C62828;
+    --red-bright: #EF5350;
+    --red-dark:   #8B0000;
+    --red-glow:   rgba(198,40,40,0.35);
+    --black:      #0A0A0A;
+    --surface:    #141414;
+    --surface2:   #1E1E1E;
+    --surface3:   #2A2A2A;
+    --text:       #F5F5F5;
+    --text-dim:   #9E9E9E;
+    --border:     rgba(198,40,40,0.25);
+    --success:    #43A047;
+    --warn:       #FB8C00;
+    --radius:     16px;
+    --font:       'Noto Serif Lao', serif;
+  }
+  .light-mode {
+    --black:    #FAFAFA;
+    --surface:  #FFFFFF;
+    --surface2: #F5F5F5;
+    --surface3: #EEEEEE;
+    --text:     #1A1A1A;
+    --text-dim: #616161;
+    --border:   rgba(198,40,40,0.2);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--black);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+
+  /* === HEADER === */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--red);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 12px var(--red-glow);
+  }
+  .logo-text { font-size: 15px; font-weight: 700; line-height: 1.2; }
+  .logo-sub  { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .clock-display {
+    font-size: 13px; font-weight: 600; color: var(--red-bright);
+    background: rgba(198,40,40,0.1);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 10px;
+  }
+
+  .toggle-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .toggle-btn:hover { background: var(--surface3); }
+
+  .admin-link {
+    font-size: 12px; color: var(--text-dim);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 10px;
+    transition: all 0.2s;
+  }
+  .admin-link:hover { color: var(--red-bright); border-color: var(--red); }
+
+  /* === MAIN === */
+  main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; margin: 0 auto; width: 100%; }
+
+  /* === STATUS BAR === */
+  .status-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .status-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    background: var(--surface2); border: 1px solid var(--border);
+    flex: 1; min-width: 130px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .dot.ok    { background: var(--success); box-shadow: 0 0 6px rgba(67,160,71,0.6); animation: pulse-dot 2s infinite; }
+  .dot.error { background: var(--red-bright); box-shadow: 0 0 6px var(--red-glow); }
+  .dot.warn  { background: var(--warn); }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* === CAMERA CARD === */
+  .camera-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+  }
+
+  .camera-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    background: #000;
+    overflow: hidden;
+  }
+
+  #video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* mirror */
+    display: block;
+  }
+
+  #overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
+  /* Face frame */
+  .face-frame {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -60%);
+    width: 55%; aspect-ratio: 1;
+    pointer-events: none;
+  }
+  .face-frame::before, .face-frame::after,
+  .face-frame .corner-bl, .face-frame .corner-br {
+    content: ''; position: absolute;
+    width: 28px; height: 28px;
+    border-color: var(--red-bright); border-style: solid;
+    border-width: 0;
+    transition: border-color 0.3s;
+  }
+  .face-frame::before  { top: 0; left: 0;  border-top-width: 3px; border-left-width: 3px;  border-top-left-radius: 6px; }
+  .face-frame::after   { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 6px; }
+  .face-frame .corner-bl { bottom: 0; left: 0;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: 6px; }
+  .face-frame .corner-br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 6px; }
+  .face-frame.scanning::before, .face-frame.scanning::after,
+  .face-frame.scanning .corner-bl, .face-frame.scanning .corner-br {
+    animation: corner-glow 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes corner-glow {
+    from { border-color: var(--red-bright); }
+    to   { border-color: var(--red-dark); }
+  }
+  .face-frame.matched::before, .face-frame.matched::after,
+  .face-frame.matched .corner-bl, .face-frame.matched .corner-br {
+    border-color: var(--success);
+  }
+  .face-frame.failed::before, .face-frame.failed::after,
+  .face-frame.failed .corner-bl, .face-frame.failed .corner-br {
+    border-color: var(--red-bright);
+  }
+
+  /* Scan line */
+  .scan-line {
+    position: absolute; left: 10%; right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--red-bright), transparent);
+    box-shadow: 0 0 8px var(--red-glow);
+    animation: scan 2s ease-in-out infinite;
+    display: none;
+  }
+  .scanning .scan-line { display: block; }
+  @keyframes scan {
+    0%   { top: 15%; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: 75%; opacity: 0; }
+  }
+
+  /* Camera overlay gradient */
+  .camera-gradient {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+  }
+
+  /* Result display overlay */
+  .result-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 16px;
+    display: none;
+    flex-direction: column; gap: 4px;
+  }
+  .result-overlay.show { display: flex; }
+  .result-name {
+    font-size: 20px; font-weight: 700; color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+  .result-dept {
+    font-size: 13px; color: rgba(255,255,255,0.75);
+  }
+
+  /* Camera placeholder */
+  .cam-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    background: var(--surface2);
+    color: var(--text-dim); font-size: 14px; text-align: center;
+  }
+  .cam-placeholder .icon { font-size: 48px; opacity: 0.4; }
+
+  /* === CAMERA CONTROLS === */
+  .camera-controls {
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .msg-box {
+    padding: 10px 14px; border-radius: 10px;
+    font-size: 13px; text-align: center;
+    background: var(--surface2); color: var(--text-dim);
+    border: 1px solid var(--border);
+    min-height: 40px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+  }
+  .msg-box.success { background: rgba(67,160,71,0.1); color: #66BB6A; border-color: rgba(67,160,71,0.3); }
+  .msg-box.error   { background: rgba(198,40,40,0.1); color: var(--red-bright); border-color: var(--border); }
+  .msg-box.warn    { background: rgba(251,140,0,0.1); color: #FFB74D; border-color: rgba(251,140,0,0.3); }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  .btn {
+    flex: 1; padding: 13px;
+    border: none; border-radius: 12px;
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--red);
+    color: #fff;
+    box-shadow: 0 4px 20px var(--red-glow);
+  }
+  .btn-primary:hover { background: var(--red-bright); }
+  .btn-primary:disabled { background: var(--surface3); color: var(--text-dim); box-shadow: none; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--surface3); }
+
+  .btn-success {
+    background: var(--success);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(67,160,71,0.3);
+  }
+  .btn-success:disabled { background: var(--surface3); color: var(--text-dim); box-shadow: none; cursor: not-allowed; }
+
+  /* === INFO CARD === */
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .info-card h3 {
+    font-size: 13px; color: var(--text-dim);
+    margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* === RECENT LOG === */
+  .log-list { display: flex; flex-direction: column; gap: 8px; }
+  .log-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: var(--surface2); border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .log-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--surface3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .log-info { flex: 1; min-width: 0; }
+  .log-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-time { font-size: 11px; color: var(--text-dim); }
+  .log-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .badge-in  { background: rgba(67,160,71,0.15); color: #66BB6A; border: 1px solid rgba(67,160,71,0.3); }
+  .badge-out { background: rgba(251,140,0,0.15);  color: #FFB74D;  border: 1px solid rgba(251,140,0,0.3); }
+
+  .empty-log { text-align: center; color: var(--text-dim); font-size: 13px; padding: 16px; }
+
+  /* === LOADER === */
+  .loader-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--black);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+    transition: opacity 0.4s;
+  }
+  .loader-overlay.hide { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 52px; height: 52px;
+    border: 3px solid var(--surface3);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-text { font-size: 14px; color: var(--text-dim); }
+  .loader-logo { font-size: 32px; }
+
+  /* === TOAST === */
+  .toast-container {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center;
+    width: calc(100% - 32px); max-width: 420px;
+  }
+  .toast {
+    width: 100%; padding: 12px 16px;
+    border-radius: 12px; font-size: 13px; font-weight: 600;
+    text-align: center;
+    animation: toast-in 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast-success { background: var(--success); color: #fff; }
+  .toast-error   { background: var(--red); color: #fff; }
+  .toast-warn    { background: var(--warn); color: #fff; }
+  @keyframes toast-in { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+
+  /* Responsive */
+  @media (min-width: 480px) {
+    main { padding: 20px; }
+    .camera-wrapper { aspect-ratio: 4/5; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loader -->
+<div class="loader-overlay" id="loader">
+  <div class="loader-logo">👁️</div>
+  <div class="spinner"></div>
+  <div class="loader-text" id="loaderText">ກຳລັງໂຫຼດລະບົບ...</div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">👁️</div>
+    <div>
+      <div class="logo-text">ສະແກນເຂົ້າວຽກ</div>
+      <div class="logo-sub" id="companyName">ລໍຖ້າ...</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock-display" id="clockDisplay">--:--:--</div>
+    <button class="toggle-btn" id="themeToggle" title="ປ່ຽນໂໝດ">🌙</button>
+    <a href="admin.html" class="admin-link">⚙️ Admin</a>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main>
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-chip">
+      <div class="dot" id="modelDot"></div>
+      <span id="modelStatus">ໂຫຼດ AI...</span>
+    </div>
+    <div class="status-chip">
+      <div class="dot" id="locDot"></div>
+      <span id="locStatus">ກວດໂລເຄຊັນ...</span>
+    </div>
+  </div>
+
+  <!-- Camera Card -->
+  <div class="camera-card">
+    <div class="camera-wrapper" id="cameraWrapper">
+      <!-- Placeholder -->
+      <div class="cam-placeholder" id="camPlaceholder">
+        <div class="icon">📷</div>
+        <div>ກົດ "ເປີດກ້ອງ" ເພື່ອເລີ່ມ</div>
+      </div>
+
+      <!-- Video -->
+      <video id="video" autoplay muted playsinline style="display:none;"></video>
+      <canvas id="overlay" style="display:none;"></canvas>
+
+      <!-- Scanning UI -->
+      <div class="face-frame" id="faceFrame" style="display:none;">
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+      </div>
+      <div class="scan-line" id="scanLine"></div>
+      <div class="camera-gradient"></div>
+
+      <!-- Result Overlay -->
+      <div class="result-overlay" id="resultOverlay">
+        <div class="result-name" id="resultName"></div>
+        <div class="result-dept" id="resultDept"></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="camera-controls">
+      <div class="msg-box" id="msgBox">ກົດ "ເປີດກ້ອງ" ເພື່ອເລີ່ມສະແກນ</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnCamera" onclick="toggleCamera()">📷 ເປີດກ້ອງ</button>
+        <button class="btn btn-success" id="btnCheckIn" onclick="doCheckIn('IN')" disabled>✅ ເຂົ້າວຽກ</button>
+        <button class="btn btn-secondary" id="btnCheckOut" onclick="doCheckIn('OUT')" disabled>🚪 ອອກວຽກ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Log -->
+  <div class="info-card">
+    <h3>📋 ການເຂົ້າ-ອອກລ່າສຸດ</h3>
+    <div class="log-list" id="logList">
+      <div class="empty-log">ຍັງບໍ່ມີຂໍ້ມູນ</div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ===== STATE =====
+let stream = null;
+let isScanning = false;
+let detectionInterval = null;
+let matchedEmployee = null;
+let locationOk = false;
+let userLat = null, userLng = null;
+let employees = [];
+let modelsLoaded = false;
+let darkMode = true;
+const recentLogs = [];
+
+// ===== INIT =====
+document.getElementById('companyName').textContent = CONFIG.COMPANY_NAME;
+
+// Theme from localStorage
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') toggleTheme();
+
+// Clock
+setInterval(() => {
+  const now = new Date();
+  document.getElementById('clockDisplay').textContent =
+    now.toLocaleTimeString('lo-LA', { hour12: false });
+}, 1000);
+
+// ===== LOADER =====
+function setLoader(text) {
+  document.getElementById('loaderText').textContent = text;
+}
+function hideLoader() {
+  const el = document.getElementById('loader');
+  el.classList.add('hide');
+  setTimeout(() => el.style.display = 'none', 400);
+}
+
+// ===== TOAST =====
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ===== THEME =====
+function toggleTheme() {
+  darkMode = !darkMode;
+  document.body.classList.toggle('light-mode', !darkMode);
+  document.getElementById('themeToggle').textContent = darkMode ? '🌙' : '☀️';
+  localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+}
+document.getElementById('themeToggle').onclick = toggleTheme;
+
+// ===== LOCATION =====
+function checkLocation() {
+  setStatus('loc', 'warn', 'ກວດໂລເຄຊັນ...');
+  if (!navigator.geolocation) {
+    setStatus('loc', 'error', 'ບໍ່ຮອງຮັບ GPS');
+    return;
+  }
+  navigator.geolocation.watchPosition(pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    const dist = getDistance(userLat, userLng, CONFIG.ALLOWED_LOCATION.lat, CONFIG.ALLOWED_LOCATION.lng);
+    locationOk = dist <= CONFIG.ALLOWED_LOCATION.radius;
+    if (locationOk) {
+      setStatus('loc', 'ok', `ໃນໂຊນ (${Math.round(dist)}ມ)`);
+    } else {
+      setStatus('loc', 'error', `ນອກໂຊນ (${Math.round(dist)}ມ)`);
+    }
+  }, () => {
+    setStatus('loc', 'error', 'ບໍ່ສາມາດລະບຸ GPS');
+  }, { enableHighAccuracy: true, maximumAge: 5000 });
+}
+
+function getDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ===== STATUS =====
+function setStatus(type, state, text) {
+  const dot = document.getElementById(type + 'Dot');
+  const label = document.getElementById(type + 'Status');
+  dot.className = 'dot ' + state;
+  label.textContent = text;
+}
+function setMsg(text, type = '') {
+  const el = document.getElementById('msgBox');
+  el.textContent = text;
+  el.className = 'msg-box ' + type;
+}
+
+// ===== LOAD MODELS =====
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), ms))
+  ]);
+}
+
+async function loadModels() {
+  setLoader('ໂຫຼດ AI Models...');
+  setStatus('model', 'warn', 'ໂຫຼດ AI...');
+  try {
+    const path = CONFIG.MODELS_PATH;
+    await withTimeout(Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(path),
+      faceapi.nets.faceLandmark68Net.loadFromUri(path),
+      faceapi.nets.faceRecognitionNet.loadFromUri(path),
+    ]), 30000); // timeout 30 ວິນາທີ
+    modelsLoaded = true;
+    setStatus('model', 'ok', 'AI ພ້ອມ');
+    setLoader('ໂຫຼດຂໍ້ມູນພະນັກງານ...');
+    await loadEmployees();
+  } catch (e) {
+    setStatus('model', 'error', 'ໂຫຼດ AI ລົ້ມ');
+    const isTimeout = e.message === 'TIMEOUT';
+    const isLocal = location.protocol === 'file:';
+    let errMsg = '❌ ໂຫຼດ AI Models ລົ້ມ\n\n';
+    if (isLocal) {
+      errMsg = '❌ ກຳລັງເປີດຜ່ານ file:// ໂດຍກົງ!\n\nຕ້ອງອັບຂຶ້ນ GitHub Pages ກ່ອນ ຈຶ່ງຈະໃຊ້ງານໄດ້';
+    } else if (isTimeout) {
+      errMsg = '⏱️ ໂຫຼດ AI Models ຊ້າ (Timeout)\n\nກວດ Internet ຫຼື ກວດໄຟລ໌ໃນໂຟນເດີ /models ຄົບບໍ່';
+    } else {
+      errMsg = '❌ ໂຫຼດ AI ລົ້ມ: ' + e.message + '\n\nກວດໂຟນເດີ /models ວ່າມີໄຟລ໌ຄົບ 7 ໄຟລ໌';
+    }
+    setMsg(errMsg, 'error');
+    hideLoader(); // ← ແກ້ໄຂ: ປິດ loader ສະເໝີ ບໍ່ວ່າຈະລົ້ມ
+  }
+}
+
+// ===== LOAD EMPLOYEES =====
+async function loadEmployees() {
+  try {
+    const res = await fetch(`${CONFIG.APPS_SCRIPT_URL}?action=getEmployees`);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      employees = data.employees;
+      setMsg(`ໂຫຼດ ${employees.length} ພະນັກງານ ✓  ກົດ "ເປີດກ້ອງ" ເພື່ອສະແກນ`);
+    }
+  } catch (e) {
+    setMsg('⚠️ ບໍ່ສາມາດໂຫຼດຂໍ້ມູນພະນັກງານ. ກວດ Config URL', 'warn');
+  }
+  hideLoader();
+}
+
+// ===== CAMERA =====
+async function toggleCamera() {
+  if (stream) {
+    stopCamera();
+  } else {
+    await startCamera();
+  }
+}
+
+async function startCamera() {
+  if (!modelsLoaded) { setMsg('ລໍຖ້າໂຫຼດ AI ກ່ອນ', 'warn'); return; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    video.style.display = 'block';
+    document.getElementById('camPlaceholder').style.display = 'none';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('faceFrame').style.display = 'block';
+    document.getElementById('scanLine').style.display = 'block';
+    document.getElementById('btnCamera').textContent = '⛔ ປິດກ້ອງ';
+    document.getElementById('cameraWrapper').classList.add('scanning');
+    document.getElementById('faceFrame').className = 'face-frame scanning';
+    setMsg('ຊີ້ໜ້າຂອງທ່ານໃສ່ກ້ອງ...');
+    startDetection();
+  } catch (e) {
+    setMsg('❌ ບໍ່ສາມາດເປີດກ້ອງ: ' + e.message, 'error');
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  clearInterval(detectionInterval);
+  document.getElementById('video').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('faceFrame').style.display = 'none';
+  document.getElementById('scanLine').style.display = 'none';
+  document.getElementById('camPlaceholder').style.display = 'flex';
+  document.getElementById('btnCamera').textContent = '📷 ເປີດກ້ອງ';
+  document.getElementById('resultOverlay').classList.remove('show');
+  document.getElementById('btnCheckIn').disabled = true;
+  document.getElementById('btnCheckOut').disabled = true;
+  matchedEmployee = null;
+  setMsg('ກົດ "ເປີດກ້ອງ" ເພື່ອສະແກນ');
+}
+
+// ===== FACE DETECTION =====
+function startDetection() {
+  clearInterval(detectionInterval);
+  detectionInterval = setInterval(detectFace, 500);
+}
+
+async function detectFace() {
+  const video = document.getElementById('video');
+  if (!video || video.readyState < 2) return;
+  if (employees.length === 0) { setMsg('ຍັງບໍ່ມີພະນັກງານລົງທະບຽນ', 'warn'); return; }
+
+  const detection = await faceapi
+    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  const frame = document.getElementById('faceFrame');
+
+  if (!detection) {
+    frame.className = 'face-frame scanning';
+    document.getElementById('resultOverlay').classList.remove('show');
+    document.getElementById('btnCheckIn').disabled = true;
+    document.getElementById('btnCheckOut').disabled = true;
+    matchedEmployee = null;
+    setMsg('ບໍ່ພົບໃບໜ້າ — ຊີ້ໜ້າໃສ່ກ້ອງ');
+    return;
+  }
+
+  // Compare with all employees
+  let bestMatch = null;
+  let bestDist = 1;
+  for (const emp of employees) {
+    if (!emp.faceDescriptor || emp.faceDescriptor.length === 0) continue;
+    const desc = new Float32Array(emp.faceDescriptor);
+    const dist = faceapi.euclideanDistance(detection.descriptor, desc);
+    if (dist < bestDist) { bestDist = dist; bestMatch = emp; }
+  }
+
+  if (bestMatch && bestDist < CONFIG.FACE_MATCH_THRESHOLD) {
+    matchedEmployee = bestMatch;
+    frame.className = 'face-frame matched';
+    document.getElementById('resultOverlay').classList.add('show');
+    document.getElementById('resultName').textContent = bestMatch.name;
+    document.getElementById('resultDept').textContent = bestMatch.department + ' · ' + bestMatch.position;
+
+    if (!locationOk) {
+      setMsg('❌ ທ່ານຢູ່ນອກໂຊນທີ່ອະນຸຍາດ! ສະແກນເຂົ້າວຽກບໍ່ໄດ້', 'error');
+      document.getElementById('btnCheckIn').disabled = true;
+      document.getElementById('btnCheckOut').disabled = true;
+    } else {
+      setMsg(`✅ ຈຳໃບໜ້າໄດ້: ${bestMatch.name}`, 'success');
+      document.getElementById('btnCheckIn').disabled = false;
+      document.getElementById('btnCheckOut').disabled = false;
+    }
+  } else {
+    matchedEmployee = null;
+    frame.className = 'face-frame failed';
+    document.getElementById('resultOverlay').classList.remove('show');
+    document.getElementById('btnCheckIn').disabled = true;
+    document.getElementById('btnCheckOut').disabled = true;
+    setMsg('⚠️ ບໍ່ຈຳໃບໜ້ານີ້ — ຕິດຕໍ່ Admin', 'warn');
+  }
+}
+
+// ===== CHECK IN / OUT =====
+async function doCheckIn(status) {
+  if (!matchedEmployee) { showToast('ບໍ່ພົບຂໍ້ມູນ', 'error'); return; }
+  if (!locationOk) { showToast('❌ ທ່ານຢູ່ນອກໂຊນ! ສະແກນບໍ່ໄດ້', 'error'); return; }
+
+  document.getElementById('btnCheckIn').disabled = true;
+  document.getElementById('btnCheckOut').disabled = true;
+  setMsg('ກຳລັງບັນທຶກ...', '');
+
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'logAttendance',
+        employeeId: matchedEmployee.id,
+        name: matchedEmployee.name,
+        department: matchedEmployee.department,
+        status: status,
+        lat: userLat,
+        lng: userLng
+      })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      const now = new Date();
+      showToast(`${status === 'IN' ? '✅ ເຂົ້າວຽກ' : '🚪 ອອກວຽກ'}: ${matchedEmployee.name}`, 'success');
+      addLogItem(matchedEmployee, status, now);
+      stopCamera();
+    }
+  } catch (e) {
+    showToast('❌ ບໍ່ສາມາດບັນທຶກ: ' + e.message, 'error');
+    document.getElementById('btnCheckIn').disabled = false;
+    document.getElementById('btnCheckOut').disabled = false;
+  }
+}
+
+// ===== LOG LIST =====
+function addLogItem(emp, status, time) {
+  recentLogs.unshift({ emp, status, time });
+  renderLogs();
+}
+function renderLogs() {
+  const el = document.getElementById('logList');
+  if (recentLogs.length === 0) { el.innerHTML = '<div class="empty-log">ຍັງບໍ່ມີຂໍ້ມູນ</div>'; return; }
+  el.innerHTML = recentLogs.slice(0, 5).map(({ emp, status, time }) => `
+    <div class="log-item">
+      <div class="log-avatar">👤</div>
+      <div class="log-info">
+        <div class="log-name">${emp.name}</div>
+        <div class="log-time">${emp.department} · ${time.toLocaleTimeString('lo-LA', { hour12: false })}</div>
+      </div>
+      <div class="log-badge ${status === 'IN' ? 'badge-in' : 'badge-out'}">${status === 'IN' ? 'ເຂົ້າ' : 'ອອກ'}</div>
+    </div>`).join('');
+}
+
+// ===== STARTUP =====
+checkLocation();
+loadModels();
+</script>
+</body>
+</html>
